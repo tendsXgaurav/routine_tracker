@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertTriangle, Plus, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, Clock, AlertTriangle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskForm from './TaskForm';
 
@@ -64,13 +64,13 @@ const RoutineTracker = () => {
     localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
   }, [completedTasks]);
 
-  // Helper function to parse time
-  const parseTime = (timeStr) => {
+  // Helper function to parse time - make it a memoized callback to fix dependency issues
+  const parseTime = useCallback((timeStr) => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     const date = new Date(currentTime);
     date.setHours(hours, minutes, 0, 0);
     return date;
-  };
+  }, [currentTime]);
 
   // Find current and upcoming tasks
   useEffect(() => {
@@ -127,7 +127,7 @@ const RoutineTracker = () => {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [currentTime, showReminder, routineTasks]);
+  }, [currentTime, showReminder, routineTasks, parseTime]); // Added parseTime dependency
   
   // Request notification permission
   useEffect(() => {
@@ -191,6 +191,25 @@ const RoutineTracker = () => {
   const calculateDailyProgress = () => {
     if (routineTasks.length === 0) return 0;
     return Math.round((completedTasks.length / routineTasks.length) * 100);
+  };
+  
+  // AnimatedReminder component definition inside RoutineTracker
+  const AnimatedReminder = ({ children, show }) => {
+    return (
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ overflow: 'hidden' }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
   };
   
   return (
